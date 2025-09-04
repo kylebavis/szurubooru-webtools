@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}Tag Tools - Szuru Importer{% endblock %}
+
+{% block content %}
+<h1>Tag Tools</h1>
+<p>Bulk tag operations and management tools.</p>
+
+<div class="tool-section">
+    <h2>Apply Missing Implications</h2>
+    <p>Find posts with the specified tags and add any missing implied tags to them.</p>
+
+    <form id="apply-implications-form">
+        <div class="form-group">
+            <label>
+                <input type="checkbox" id="full-scan" name="full_scan">
+                Full scan mode (process all tags with implications)
+            </label>
+        </div>
+
+        <div class="form-group" id="tags-input-group">
+            <label for="apply-tags">Tags (comma-separated):</label>
+            <textarea id="apply-tags" name="tags" rows="4" required
+                      placeholder="pondering_my_orb"></textarea>
+        </div>
+
+        <div class="form-group">
+            <label>
+                <input type="checkbox" id="dry-run" name="dry_run" checked>
+                Dry run (preview changes without applying)
+            </label>
+        </div>
+
+        <button type="submit" id="apply-implications-btn">Apply Implications</button>
+    </form>
+
+    <div id="apply-implications-result" style="display: none;"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Toggle tags input based on full scan mode
+document.getElementById('full-scan').addEventListener('change', function(e) {
+    const tagsInputGroup = document.getElementById('tags-input-group');
+    const tagsTextarea = document.getElementById('apply-tags');
+
+    if (e.target.checked) {
+        tagsInputGroup.style.display = 'none';
+        tagsTextarea.required = false;
+    } else {
+        tagsInputGroup.style.display = 'block';
+        tagsTextarea.required = true;
+    }
+});
+
+// Apply implications form handler
+document.getElementById('apply-implications-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const button = document.getElementById('apply-implications-btn');
+    const formData = new FormData(e.target);
+    const tagsInput = formData.get('tags');
+    const dryRun = formData.get('dry_run') === 'on';
+    const fullScan = formData.get('full_scan') === 'on';
+
+    let tags = [];
+
+    if (fullScan) {
+        // Full scan mode - will be handled by the API
+        tags = [];
+    } else {
+        // Manual tag input mode
+        if (!tagsInput) return;
+
+        // Parse comma-separated tags
+        tags = tagsInput.split(',')
+            .map(tag => tag.trim())
+            .filter(tag => tag.length > 0);
+
+        if (tags.length === 0) return;
+    }
+
+    UI.showLoading(button);
+    const resultDiv = document.getElementById('apply-implications-result');
+    resultDiv.style.display = 'block';
+    resultDiv.innerHTML = '<div class="progress-log" id="progress-log" style="max-height: 400px; overflow-y: auto; background: #f5f5f5; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 14px;"></div>';
+
+    const progressLog = document.getElementById('progress-log');
+
+    function addLogMessage(message, type = 'info') {
+        const timestamp = new Date().toLocaleTimeString();
+        const colors = {
+            'info': '#666',
+            'success': '#28a745',
+            'error': '#dc3545',
+            'warning': '#ffc107',
+            'status': '#007bff',
+            'progress': '#6f42c1',
+            'summary': '#17a2b8'
+        };
+
+        const color = colors[type] || colors['info'];
+        const logEntry = document.createElement('div');
+        logEntry.innerHTML = `<span style="color: #999;">[${timestamp}]</span> <span style="color: ${color};">${message}</span>`;
+        progressLog.appendChild(logEntry);
+        progressLog.scrollTop = progressLog.scrollHeight;
+    }
+
+    try {
+        // Use the streaming endpoint for real-time updates
+        const response = await fetch('/api/tag-tools/apply-implications-stream', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                tags: tags,
+                dry_run: dryRun,
+                full_scan: fullScan
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let finalResults = null;
+
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    try {
+                        const data = JSON.parse(line.slice(6));
+
+                        switch (data.type) {
+                            case 'status':
+                            case 'info':
+                                addLogMessage(data.message, data.type);
+                                break;
+                            case 'progress':
+                                addLogMessage(`Processing tag ${data.current}/${data.total}: ${data.tag}`, 'progress');
+                                break;
+                            case 'success':
+                                addLogMessage(data.message, 'success');
+                                break;
+                            case 'error':
+                                addLogMessage(data.message, 'error');
+                                break;
+                            case 'summary':
+                                addLogMessage(data.message, 'summary');
+                                break;
+                            case 'complete':
+                                finalResults = data.data;
+                                addLogMessage(data.message, 'status');
+
+                                // Add final summary
+                                setTimeout(() => {
+                                    const summaryDiv = document.createElement('div');
+                                    summaryDiv.style.cssText = 'margin-top: 15px; padding: 10px; background: #e9ecef; border-radius: 4px;';
+                                    summaryDiv.innerHTML = `
+                                        <strong>Final Results:</strong><br>
+                                        Processed tags: ${finalResults.processed_tags}<br>
+                                        Posts found: ${finalResults.posts_found}<br>
+                                        Posts updated: ${finalResults.posts_updated}<br>
+                                        Implications added: ${finalResults.implications_added}
+                                    `;
+                                    resultDiv.appendChild(summaryDiv);
+                                }, 100);
+                                break;
+                        }
+                    } catch (e) {
+                        // Ignore JSON parse errors for incomplete chunks
+                    }
+                }
+            }
+        }
+
+    } catch (error) {
+        addLogMessage(`Error: ${error.message}`, 'error');
+    } finally {
+        UI.hideLoading(button, 'Apply Implications');
+    }
+});
+</script>
+{% endblock %}

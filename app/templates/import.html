@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Import Media - Szuru Importer{% endblock %}
+
+{% block content %}
+<h1>Import Media</h1>
+<p>Download media from a URL using gallery-dl and import it to Szurubooru with extracted tags.</p>
+
+<form id="import-form">
+    <div class="form-group">
+        <label for="url">Source URL:</label>
+        <input type="url" id="url" name="url" required
+               placeholder="https://example.com/post/12345">
+    </div>
+
+    <div class="form-group">
+        <label for="safety">Safety Rating:</label>
+        <select id="safety" name="safety">
+            <option value="safe">Safe</option>
+            <option value="sketchy">Sketchy</option>
+            <option value="unsafe">Unsafe</option>
+        </select>
+    </div>
+
+    <button type="submit" id="import-btn">Import Media</button>
+</form>
+
+<div id="import-result" class="result" style="display: none;"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('import-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const button = document.getElementById('import-btn');
+    const formData = new FormData(e.target);
+    const url = formData.get('url');
+    const safety = formData.get('safety');
+
+    if (!url) return;
+
+    UI.showLoading(button);
+    document.getElementById('import-result').style.display = 'block';
+
+    try {
+        const result = await ApiClient.importMedia(url, safety);
+
+        let message = `Import completed!\n`;
+        message += `Downloaded: ${result.downloaded} files\n`;
+        message += `Uploaded: ${result.uploaded} files\n`;
+
+        if (result.errors > 0) {
+            message += `Errors: ${result.errors}\n`;
+        }
+
+        if (result.details && result.details.length > 0) {
+            message += `\nDetails:\n${result.details.join('\n')}`;
+        }
+
+        const type = result.errors > 0 ? 'error' : 'success';
+        UI.showResult('import-result', message, type);
+
+        // Clear form on success
+        if (result.errors === 0) {
+            document.getElementById('url').value = '';
+        }
+
+    } catch (error) {
+        UI.showResult('import-result', `Error: ${error.message}`, 'error');
+    } finally {
+        UI.hideLoading(button, 'Import Media');
+    }
+});
+</script>
+{% endblock %}

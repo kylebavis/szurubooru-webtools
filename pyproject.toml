@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "szuru-app"
+version = "0.1.0"
+description = "Web app to fetch media via gallery-dl and import into Szurubooru with tag implication enrichment"
+authors = [ { name = "User" } ]
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi",
+  "uvicorn[standard]",
+  "httpx",
+  "pydantic",
+  "pydantic-settings",
+  "gallery-dl",
+  "python-multipart",
+  "jinja2"
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-asyncio", "ruff", "mypy"]

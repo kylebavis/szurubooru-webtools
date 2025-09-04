@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  szuru-webtools:
+    image: szuru-webtools:latest
+    ports:
+      - "8000:8000"
+    environment:
+      # Szurubooru connection settings
+      SZURU_SZURU_BASE: "https://url.to.szurubooru.instance"
+      SZURU_SZURU_USER: "myuser"
+      SZURU_SZURU_TOKEN: "my-api-token-here"
+
+    # Using Docker configs to inject gallery-dl configuration
+    configs:
+      - source: gallery_dl_config
+        target: /home/appuser/.config/gallery-dl/config.json
+        mode: 0644
+
+    restart: unless-stopped
+
+
+configs:
+  gallery_dl_config:
+    content: |
+      {
+        "extractor": {
+          "base-directory": "/tmp/downloads",
+          "write-metadata": true,
+          "write-info-json": true,
+          "twitter": {
+            "retweets": false,
+            "videos": true,
+            "filename": "{category}_{user[screen_name]}_{id}_{num}.{extension}",
+            "directory": ["{category}", "{user[screen_name]}"]
+          }
+        },
+        "output": {
+          "mode": "terminal",
+          "progress": true
+        },
+        "postprocessor": [
+          {
+            "name": "metadata",
+            "mode": "json",
+            "filename": "{filename}.info.json"
+          }
+        ]
+      }
+
+  # Replace the configs with a mounted file if you prefer
+    #volumes:
+      # Mount gallery-dl config file
+      #- ./gallery-dl.conf:/home/appuser/.config/gallery-dl/config.json:ro
