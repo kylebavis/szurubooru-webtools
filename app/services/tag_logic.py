@@ -1,6 +1,7 @@
 from __future__ import annotations
-from typing import Iterable, Sequence, Set, Protocol, List
+
 import re
+from typing import Iterable, List, Protocol, Set
 
 RECOGNIZED = {"page","creator","person","series","character","title","meme","meta"}
 DEFAULT_CAT = "default"

@@ -1,9 +1,10 @@
-import asyncio, json, tempfile, shutil
+import asyncio
+import json
 from pathlib import Path
-from typing import Iterable, List, Optional
-import subprocess
+
 from app.core.config import settings
-from .tag_logic import normalize_tag, tags_for_upload
+
+from .tag_logic import normalize_tag
 
 GDL_BIN = 'gallery-dl'
 

@@ -1,11 +1,12 @@
+import json
+
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-import json
-import asyncio
-from app.services.downloader import run_gallery_dl, collect_tags_for_file, collect_source_for_file
-from app.services.tag_logic import tags_for_upload
+
+from app.services.downloader import collect_source_for_file, collect_tags_for_file, run_gallery_dl
 from app.services.szuru_client import szuru_client
+from app.services.tag_logic import tags_for_upload
 
 router = APIRouter()
 

@@ -1,6 +1,8 @@
+from pathlib import Path
+
 from pydantic import AnyHttpUrl
 from pydantic_settings import BaseSettings
-from pathlib import Path
+
 
 class Settings(BaseSettings):
     szuru_base: AnyHttpUrl = ""

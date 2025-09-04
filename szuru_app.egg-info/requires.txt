@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+httpx
+pydantic
+pydantic-settings
+gallery-dl
+python-multipart
+jinja2
+
+[dev]
+pytest
+pytest-asyncio
+ruff
+mypy

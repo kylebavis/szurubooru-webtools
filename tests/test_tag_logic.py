@@ -1,5 +1,6 @@
 from app.services.tag_logic import tags_for_upload
 
+
 def test_tags_for_upload_basic():
     cats, upload = tags_for_upload(["Creator:John Doe", "character:Alice", "misc_tag"])  # mixed case
     assert 'creator' in cats and 'john_doe' in cats['creator']

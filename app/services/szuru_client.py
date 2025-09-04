@@ -1,9 +1,13 @@
 import base64
 import json
-from typing import Any, Dict, Optional, Sequence
+from typing import Any, Dict, Sequence
+
 import httpx
-from .tag_logic import normalize_tag
+
 from app.core.config import settings
+
+from .tag_logic import normalize_tag
+
 
 class SzuruClient:
     def __init__(self, base_url: str | None = None, auth_mode: str | None = None):
@@ -93,7 +97,7 @@ class SzuruClient:
         offset = 0
         limit = 100  # Maximum allowed by Szurubooru
 
-        print(f"DEBUG: Starting pagination to get all tags with implications...")
+        print("DEBUG: Starting pagination to get all tags with implications...")
 
         while True:
             print(f"DEBUG: Requesting tags offset={offset}, limit={limit}")
