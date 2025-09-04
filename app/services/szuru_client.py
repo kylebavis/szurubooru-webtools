@@ -11,7 +11,12 @@ from .tag_logic import normalize_tag
 
 class SzuruClient:
     def __init__(self, base_url: str | None = None, auth_mode: str | None = None):
-        self.base_url = base_url or str(settings.szuru_base).rstrip('/')
+        if base_url:
+            self.base_url = base_url.rstrip('/')
+        elif settings.szuru_base:
+            self.base_url = str(settings.szuru_base).rstrip('/')
+        else:
+            raise RuntimeError("SZURU_BASE is required but not configured")
         self.auth_mode = auth_mode or settings.auth_mode
         self._client = httpx.AsyncClient(base_url=self.base_url)
 
@@ -74,7 +79,9 @@ class SzuruClient:
         for rel in data.get('implications', []) or []:
             name = rel.get('names', [None])[0]
             if name:
-                imps.append(normalize_tag(name))
+                normalized = normalize_tag(name)
+                if normalized:  # Only append if normalize_tag returns a non-None value
+                    imps.append(normalized)
         return imps
 
     async def search_posts(self, query: str, limit: int = 100, offset: int = 0) -> dict:
@@ -118,7 +125,9 @@ class SzuruClient:
                 if tag_names and implications:
                     # Use the primary name (first in names array)
                     primary_name = tag_names[0]
-                    tags_with_implications.append(normalize_tag(primary_name))
+                    normalized = normalize_tag(primary_name)
+                    if normalized:  # Only append if normalize_tag returns a non-None value
+                        tags_with_implications.append(normalized)
 
             # Check if we got fewer results than the limit, meaning we're done
             if len(results) < limit:

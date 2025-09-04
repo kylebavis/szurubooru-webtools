@@ -1,11 +1,12 @@
 from pathlib import Path
+from typing import Optional
 
 from pydantic import AnyHttpUrl
 from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    szuru_base: AnyHttpUrl = ""
+    szuru_base: Optional[AnyHttpUrl] = None
     szuru_user: str = ""
     szuru_password: str = ""
     szuru_token: str = ""
