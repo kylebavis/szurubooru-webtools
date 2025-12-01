@@ -11,9 +11,9 @@ if [ ! -f .env ]; then
     echo "✅ Created .env file. Please edit it with your Szurubooru credentials."
     echo ""
     echo "Required settings:"
-    echo "  - SZURU_SZURU_BASE: Your Szurubooru instance URL"
-    echo "  - SZURU_SZURU_USER: Your username"
-    echo "  - SZURU_SZURU_TOKEN: Your API token"
+    echo "  - SZURU_BASE: Your Szurubooru instance URL"
+    echo "  - SZURU_USER: Your username"
+    echo "  - SZURU_TOKEN: Your API token"
     echo ""
     echo "Edit .env file now? (y/n)"
     read -r response

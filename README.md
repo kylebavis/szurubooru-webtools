@@ -17,9 +17,9 @@ Adding implications in Szurubooru won't add the implied tag(s) where they ought 
 ```powershell
 docker build -t szuru-webtools:dev .
 docker run --rm -p 8000:8000 `
-  -e SZURU_SZURU_BASE=$env:SZURU_SZURU_BASE `
-  -e SZURU_SZURU_USER=$env:SZURU_SZURU_USER `
-  -e SZURU_SZURU_TOKEN=$env:SZURU_SZURU_TOKEN `
+  -e SZURU_BASE=$env:SZURU_BASE `
+  -e SZURU_USER=$env:SZURU_USER `
+  -e SZURU_TOKEN=$env:SZURU_TOKEN `
   szuru-webtools:dev
 ```
 
@@ -32,10 +32,10 @@ Open <http://localhost:8000> in your browser to access:
 
 Environment variables (prefix `SZURU_`):
 
-- `SZURU_SZURU_BASE` (Base URL) e.g. <https://szurubooru.your.domain>
-- `SZURU_SZURU_USER`
-- `SZURU_SZURU_PASSWORD` (if using password auth)
-- `SZURU_SZURU_TOKEN` (if using token auth)
+- `SZURU_BASE` (Base URL) e.g. <https://szurubooru.your.domain>
+- `SZURU_USER`
+- `SZURU_PASSWORD` (if using password auth)
+- `SZURU_TOKEN` (if using token auth)
 
 ## Notes
 

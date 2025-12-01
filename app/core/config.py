@@ -6,10 +6,10 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    szuru_base: Optional[AnyHttpUrl] = None
-    szuru_user: str = ""
-    szuru_password: str = ""
-    szuru_token: str = ""
+    base: Optional[AnyHttpUrl] = None
+    user: str = ""
+    password: str = ""
+    token: str = ""
     auth_mode: str = "auto"  # basic|token|auto
     download_dir: Path = Path("/tmp/szuru-downloads")
 
