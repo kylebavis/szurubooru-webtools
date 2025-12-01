@@ -13,23 +13,23 @@ class SzuruClient:
     def __init__(self, base_url: str | None = None, auth_mode: str | None = None):
         if base_url:
             self.base_url = base_url.rstrip('/')
-        elif settings.szuru_base:
-            self.base_url = str(settings.szuru_base).rstrip('/')
+        elif settings.base:
+            self.base_url = str(settings.base).rstrip('/')
         else:
             raise RuntimeError("SZURU_BASE is required but not configured")
         self.auth_mode = auth_mode or settings.auth_mode
         self._client = httpx.AsyncClient(base_url=self.base_url)
 
     def _auth_header(self) -> Dict[str, str]:
-        if self.auth_mode == 'token' or (self.auth_mode == 'auto' and settings.szuru_token):
-            if not (settings.szuru_user and settings.szuru_token):
+        if self.auth_mode == 'token' or (self.auth_mode == 'auto' and settings.token):
+            if not (settings.user and settings.token):
                 raise RuntimeError("Token auth requires SZURU_USER and SZURU_TOKEN")
-            raw = f"{settings.szuru_user}:{settings.szuru_token}".encode()
+            raw = f"{settings.user}:{settings.token}".encode()
             return {"Authorization": f"Token {base64.b64encode(raw).decode()}"}
         # basic
-        if not (settings.szuru_user and settings.szuru_password):
+        if not (settings.user and settings.password):
             raise RuntimeError("Basic auth requires SZURU_USER and SZURU_PASSWORD")
-        raw = f"{settings.szuru_user}:{settings.szuru_password}".encode()
+        raw = f"{settings.user}:{settings.password}".encode()
         return {"Authorization": f"Basic {base64.b64encode(raw).decode()}"}
 
     async def _req(self, method: str, path: str, json: Any | None = None, files: Dict[str, Any] | None = None):
