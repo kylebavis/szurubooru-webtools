@@ -7,9 +7,9 @@ services:
       - "8000:8000"
     environment:
       # Szurubooru connection settings
-      SZURU_SZURU_BASE: "https://url.to.szurubooru.instance"
-      SZURU_SZURU_USER: "myuser"
-      SZURU_SZURU_TOKEN: "my-api-token-here"
+      SZURU_BASE: "https://url.to.szurubooru.instance"
+      SZURU_USER: "myuser"
+      SZURU_TOKEN: "my-api-token-here"
 
     # Using Docker configs to inject gallery-dl configuration
     configs:
