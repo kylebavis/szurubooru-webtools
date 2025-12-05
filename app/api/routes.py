@@ -59,6 +59,22 @@ async def import_media(req: ImportRequest):
         except Exception as e:
             errors += 1
             details.append(f"Upload failed {file.name}: {e}")
+        finally:
+            # Move the media file and any metadata sidecars to a processed directory
+            try:
+                processed_dir = dl.base_dir / 'processed'
+                processed_dir.mkdir(parents=True, exist_ok=True)
+                # move the main file
+                target = processed_dir / file.name
+                file.replace(target)
+                # move sidecars if present
+                for suf in ('.json', '.info.json'):
+                    side = file.with_name(file.name + suf)
+                    if side.exists():
+                        side.replace(processed_dir / side.name)
+            except Exception as e:
+                # record move errors but don't stop processing
+                details.append(f"Failed to move {file.name} to processed: {e}")
     return FetchResponse(downloaded=len(dl.files), uploaded=uploaded, errors=errors, details=details)
 
 @router.post('/tag-tools/apply-implications', response_model=ApplyImplicationsResponse)
