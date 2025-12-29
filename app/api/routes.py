@@ -32,6 +32,14 @@ class ApplyImplicationsResponse(BaseModel):
     implications_added: int
     details: list[str]
 
+class DeleteUnusedTagsRequest(BaseModel):
+    dry_run: bool = False
+
+class DeleteUnusedTagsResponse(BaseModel):
+    tags_found: int
+    tags_deleted: int
+    details: list[str]
+
 @router.post('/import', response_model=FetchResponse)
 async def import_media(req: ImportRequest):
     try:
@@ -330,3 +338,69 @@ async def apply_implications_stream(req: ApplyImplicationsRequest):
             "Content-Type": "text/event-stream"
         }
     )
+
+@router.post('/tag-tools/delete-unused-tags-stream')
+async def delete_unused_tags_stream(req: DeleteUnusedTagsRequest):
+    """Streaming version that provides real-time progress updates for deleting unused tags"""
+
+    async def generate_updates():
+        tags_found = 0
+        tags_deleted = 0
+
+        try:
+            # Send initial status
+            yield f"data: {json.dumps({'type': 'status', 'message': 'Finding tags with 0 usages...'})}\n\n"
+
+            # Get all unused tags
+            try:
+                unused_tags = await szuru_client.get_unused_tags()
+                tags_found = len(unused_tags)
+                yield f"data: {json.dumps({'type': 'status', 'message': f'Found {tags_found} unused tags'})}\n\n"
+            except Exception as e:
+                yield f"data: {json.dumps({'type': 'error', 'message': f'Error getting unused tags: {e}'})}\n\n"
+                return
+
+            if tags_found == 0:
+                yield f"data: {json.dumps({'type': 'info', 'message': 'No unused tags found'})}\n\n"
+                yield f"data: {json.dumps({'type': 'complete', 'data': {'tags_found': 0, 'tags_deleted': 0}, 'message': 'COMPLETE - No tags to delete'})}\n\n"
+                return
+
+            # Process each unused tag
+            for tag_index, tag_data in enumerate(unused_tags):
+                tag_names = tag_data.get('names', [])
+                if not tag_names:
+                    continue
+
+                primary_name = tag_names[0]
+                tag_version = tag_data.get('version')
+
+                yield f"data: {json.dumps({'type': 'progress', 'current': tag_index + 1, 'total': tags_found, 'tag': primary_name})}\n\n"
+
+                if not req.dry_run:
+                    try:
+                        await szuru_client.delete_tag(primary_name, tag_version)
+                        tags_deleted += 1
+                        yield f"data: {json.dumps({'type': 'success', 'message': f'Deleted tag: {primary_name}'})}\n\n"
+                    except Exception as e:
+                        yield f"data: {json.dumps({'type': 'error', 'message': f'Failed to delete tag {primary_name}: {e}'})}\n\n"
+                else:
+                    yield f"data: {json.dumps({'type': 'info', 'message': f'Would delete tag: {primary_name}'})}\n\n"
+                    tags_deleted += 1
+
+            # Send final results
+            final_message = f"DRY RUN COMPLETE - Would delete {tags_deleted} tags" if req.dry_run else f"DELETION COMPLETE - Deleted {tags_deleted} tags"
+            yield f"data: {json.dumps({'type': 'complete', 'data': {'tags_found': tags_found, 'tags_deleted': tags_deleted}, 'message': final_message})}\n\n"
+
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'message': f'Unexpected error: {e}'})}\n\n"
+
+    return StreamingResponse(
+        generate_updates(),
+        media_type="text/plain",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "Content-Type": "text/event-stream"
+        }
+    )
+

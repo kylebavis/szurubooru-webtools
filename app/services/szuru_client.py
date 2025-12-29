@@ -138,4 +138,34 @@ class SzuruClient:
         print(f"DEBUG: Found {len(tags_with_implications)} tags with implications: {tags_with_implications}")
         return tags_with_implications
 
+    async def get_unused_tags(self) -> list[dict]:
+        """Get all tags with 0 usages"""
+        unused_tags = []
+        offset = 0
+        limit = 100  # Maximum allowed by Szurubooru
+
+        while True:
+            data = await self._req('GET', f'api/tags/?limit={limit}&offset={offset}')
+            results = data.get('results', [])
+
+            if not results:
+                break
+
+            for tag_data in results:
+                usage_count = tag_data.get('usages', 0)
+                if usage_count == 0:
+                    unused_tags.append(tag_data)
+
+            # Check if we got fewer results than the limit, meaning we're done
+            if len(results) < limit:
+                break
+
+            offset += limit
+
+        return unused_tags
+
+    async def delete_tag(self, tag: str, version: int) -> dict:
+        """Delete a tag - requires current version for optimistic locking"""
+        return await self._req('DELETE', f'api/tag/{tag}', json={'version': version})
+
 szuru_client = SzuruClient()
