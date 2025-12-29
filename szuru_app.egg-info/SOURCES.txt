@@ -14,4 +14,5 @@ szuru_app.egg-info/SOURCES.txt
 szuru_app.egg-info/dependency_links.txt
 szuru_app.egg-info/requires.txt
 szuru_app.egg-info/top_level.txt
+tests/test_szuru_client.py
 tests/test_tag_logic.py
