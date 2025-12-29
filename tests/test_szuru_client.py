@@ -1,6 +1,7 @@
 import os
+from unittest.mock import AsyncMock
+
 import pytest
-from unittest.mock import AsyncMock, patch
 
 # Set environment variables before importing the module
 os.environ['SZURU_BASE'] = 'http://test.local'
