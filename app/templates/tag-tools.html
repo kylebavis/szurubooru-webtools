@@ -36,6 +36,24 @@
 
     <div id="apply-implications-result" style="display: none;"></div>
 </div>
+
+<div class="tool-section">
+    <h2>Delete Unused Tags</h2>
+    <p>Find and delete all tags that have 0 usages.</p>
+
+    <form id="delete-unused-tags-form">
+        <div class="form-group">
+            <label>
+                <input type="checkbox" id="delete-dry-run" name="dry_run" checked>
+                Dry run (preview which tags would be deleted without actually deleting them)
+            </label>
+        </div>
+
+        <button type="submit" id="delete-unused-tags-btn">Delete Unused Tags</button>
+    </form>
+
+    <div id="delete-unused-tags-result" style="display: none;"></div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -188,6 +206,117 @@ document.getElementById('apply-implications-form').addEventListener('submit', as
         addLogMessage(`Error: ${error.message}`, 'error');
     } finally {
         UI.hideLoading(button, 'Apply Implications');
+    }
+});
+
+// Delete unused tags form handler
+document.getElementById('delete-unused-tags-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const button = document.getElementById('delete-unused-tags-btn');
+    const formData = new FormData(e.target);
+    const dryRun = formData.get('dry_run') === 'on';
+
+    UI.showLoading(button);
+    const resultDiv = document.getElementById('delete-unused-tags-result');
+    resultDiv.style.display = 'block';
+    resultDiv.innerHTML = '<div class="progress-log" id="delete-progress-log" style="max-height: 400px; overflow-y: auto; background: #f5f5f5; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 14px;"></div>';
+
+    const progressLog = document.getElementById('delete-progress-log');
+
+    function addLogMessage(message, type = 'info') {
+        const timestamp = new Date().toLocaleTimeString();
+        const colors = {
+            'info': '#666',
+            'success': '#28a745',
+            'error': '#dc3545',
+            'warning': '#ffc107',
+            'status': '#007bff',
+            'progress': '#6f42c1',
+            'summary': '#17a2b8'
+        };
+
+        const color = colors[type] || colors['info'];
+        const logEntry = document.createElement('div');
+        logEntry.innerHTML = `<span style="color: #999;">[${timestamp}]</span> <span style="color: ${color};">${message}</span>`;
+        progressLog.appendChild(logEntry);
+        progressLog.scrollTop = progressLog.scrollHeight;
+    }
+
+    try {
+        // Use the streaming endpoint for real-time updates
+        const response = await fetch('/api/tag-tools/delete-unused-tags-stream', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                dry_run: dryRun
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let finalResults = null;
+
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    try {
+                        const data = JSON.parse(line.slice(6));
+
+                        switch (data.type) {
+                            case 'status':
+                            case 'info':
+                                addLogMessage(data.message, data.type);
+                                break;
+                            case 'progress':
+                                addLogMessage(`Processing tag ${data.current}/${data.total}: ${data.tag}`, 'progress');
+                                break;
+                            case 'success':
+                                addLogMessage(data.message, 'success');
+                                break;
+                            case 'error':
+                                addLogMessage(data.message, 'error');
+                                break;
+                            case 'complete':
+                                finalResults = data.data;
+                                addLogMessage(data.message, 'status');
+
+                                // Add final summary
+                                setTimeout(() => {
+                                    const summaryDiv = document.createElement('div');
+                                    summaryDiv.style.cssText = 'margin-top: 15px; padding: 10px; background: #e9ecef; border-radius: 4px;';
+                                    summaryDiv.innerHTML = `
+                                        <strong>Final Results:</strong><br>
+                                        Tags found: ${finalResults.tags_found}<br>
+                                        Tags deleted: ${finalResults.tags_deleted}
+                                    `;
+                                    resultDiv.appendChild(summaryDiv);
+                                }, 100);
+                                break;
+                        }
+                    } catch (e) {
+                        // Ignore JSON parse errors for incomplete chunks
+                    }
+                }
+            }
+        }
+
+    } catch (error) {
+        addLogMessage(`Error: ${error.message}`, 'error');
+    } finally {
+        UI.hideLoading(button, 'Delete Unused Tags');
     }
 });
 </script>
