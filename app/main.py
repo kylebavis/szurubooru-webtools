@@ -26,9 +26,9 @@ async def health_check():
 
 @app.get('/')
 async def import_page(request: Request):
-    return templates.TemplateResponse("import.html", {"request": request})
+    return templates.TemplateResponse(request, "import.html")
 
 
 @app.get('/tag-tools')
 async def tag_tools_page(request: Request):
-    return templates.TemplateResponse("tag-tools.html", {"request": request})
+    return templates.TemplateResponse(request, "tag-tools.html")
